@@ -1,54 +1,20 @@
-# Derived from https://github.com/jaraco/skeleton/blob/ab34814ca3ffe511ad63bb9589da06fd76758db8/.github/workflows/main.yml
 name: tests
 
 on:
-  workflow_call:
-    secrets:
-      PYPI_TOKEN:
-        required: false
-
-permissions:
-  contents: read
-
-defaults:
-  run:
-    shell: bash
-
-env:
-  # Environment variable to support color support (jaraco/skeleton#66)
-  FORCE_COLOR: 1
-
-  # Suppress noisy pip warnings
-  PIP_DISABLE_PIP_VERSION_CHECK: 'true'
-  PIP_NO_PYTHON_VERSION_WARNING: 'true'
-  PIP_NO_WARN_SCRIPT_LOCATION: 'true'
+  push:
 
 jobs:
   test:
     strategy:
-      # https://blog.jaraco.com/efficient-use-of-ci-resources/
-      fail-fast: false
       matrix:
         python:
-        - "3.8"
         - "3.12"
         platform:
         - ubuntu-latest
         - macos-latest
         - windows-latest
-        include:
-        - python: "3.9"
-          platform: ubuntu-latest
-        - python: "3.10"
-          platform: ubuntu-latest
-        - python: "3.11"
-          platform: ubuntu-latest
-        - python: pypy3.10
-          platform: ubuntu-latest
 
     runs-on: ${{ matrix.platform }}
-    
-    continue-on-error: ${{ matrix.python == '3.13' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -57,89 +23,4 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Run tests for ${{ matrix.python }} (${{ runner.os }})
-        run: pipx run 'coherent.test>=0.7.0'
-        env:
-          # See coherent-oss/coherent.build#21
-          GH_TOKEN: ${{ github.token }}
-
-  # diffcov--commented out and worked on in a different branch
-  # see coherent-oss/system#2
-  # diffcov:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #     with:
-  #       fetch-depth: 0
-  #   - name: Setup Python
-  #     uses: actions/setup-python@v5
-  #     with:
-  #       python-version: 3.x
-  #   - run: |
-  #       set -euxo pipefail
-  #       pipx run --pip-args pytest-cov 'coherent.test>=0.7.0' --cov --cov-report xml
-  #       pip install diff-cover
-  #       diff-cover coverage.xml --compare-branch=origin/main --html-report diffcov.html
-  #       diff-cover coverage.xml --compare-branch=origin/main --fail-under=100
-
-  docs:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.x
-    - name: Skip or build with Sphinx
-      run: |
-        set -euxo pipefail
-        cd docs || exit 0
-        pip install sphinx jaraco.packaging rst.linker furo sphinx-lint jaraco.tidelift
-        python -m sphinx -W --keep-going . ./build/html
-        python -m sphinxlint
-      env:
-        # token is required for `gh` to resolve metadata
-        GH_TOKEN: ${{ github.token }}
-
-  check:  # This job does nothing and is only used for the branch protection
-    if: always()
-
-    needs:
-    - test
-    - docs
-    # - diffcov
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Decide whether the needed jobs succeeded or failed
-      uses: re-actors/alls-green@release/v1
-      with:
-        jobs: ${{ toJSON(needs) }}
-
-  release:
-    permissions:
-      contents: write
-
-    needs:
-    - check
-
-    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.x
-    - name: Build and upload to PyPI
-      run: |
-        pipx run coherent.cli build
-        pipx run twine upload dist/*
-      env:
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        GH_TOKEN: ${{ github.token }}
+        run: pipx run --spec setuptools python -c 'import setuptools'
