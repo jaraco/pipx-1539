@@ -23,4 +23,4 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Run tests for ${{ matrix.python }} (${{ runner.os }})
-        run: pipx run --spec coherent.test python -c 'import setuptools'
+        run: pipx run coherent.test
