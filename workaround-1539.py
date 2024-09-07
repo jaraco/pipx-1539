@@ -4,9 +4,10 @@ Workaround for pypa/pipx#1539.
 Ensures the shared libs are built, then uninstalls setuptools.
 """
 
-import subprocess
-import re
 import os
+import re
+import shutil
+import subprocess
 
 
 def get_pipx_shared_libs():
@@ -26,8 +27,19 @@ def main():
     # Get the PIPX_SHARED_LIBS path
     shared_libs_path = get_pipx_shared_libs()
 
-    # Construct the path to the Python interpreter within the shared environment
-    python_path = os.path.join(shared_libs_path, 'bin', 'python')
+    # Construct search paths for 'python' executable within the shared environment
+    search_paths = [
+        os.path.join(shared_libs_path, 'bin'),  # Linux
+        os.path.join(shared_libs_path, 'Scripts'),  # Windows
+    ]
+
+    # Resolve the 'python' executable path using shutil.which
+    python_path = shutil.which('python', path=os.pathsep.join(search_paths))
+
+    if not python_path:
+        raise ValueError(
+            "Could not find 'python' executable in the pipx shared environment"
+        )
 
     # Uninstall setuptools if present
     subprocess.run([python_path, '-m', 'pip', 'uninstall', '-y', 'setuptools'])
